@@ -1,0 +1,326 @@
+// ACE AI — Prisma Schema
+// All entities from SRD §23
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+// ── Auth ────────────────────────────────────────────────────────────────────
+
+model User {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  name      String
+  password  String
+  role      String   @default("STUDENT") // STUDENT, ORGANIZER, ADMIN
+  avatar    String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  studentProfile     StudentProfile?
+  organizer          Organizer?
+  savedEvents        SavedEvent[]
+  eventActivity      EventActivity[]
+  conversations      Conversation[]
+  notifications      Notification[]
+  gamification       GamificationProfile?
+  userBadges         UserBadge[]
+  challengeProgress  ChallengeProgress[]
+  reports            Report[]
+  moderationActions  ModerationAction[]
+  recommendations    Recommendation[]
+
+  @@map("users")
+}
+
+// ── Student ─────────────────────────────────────────────────────────────────
+
+model StudentProfile {
+  id               String   @id @default(cuid())
+  userId           String   @unique
+  user             User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  college          String   @default("")
+  department       String   @default("")
+  graduationYear   Int?
+  city             String   @default("")
+  state            String   @default("")
+  country          String   @default("India")
+  skills           String   @default("[]") // JSON array
+  interests        String   @default("[]") // JSON array
+  careerGoals      String   @default("[]") // JSON array
+  locationPref     String   @default("[]") // JSON array: ["remote","city","state"]
+  opportunityTypes String   @default("[]") // JSON array
+  notifFrequency   String   @default("DAILY")
+  profileCompletion Int     @default(0)
+  onboardingDone   Boolean  @default(false)
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  recommendations  Recommendation[]
+
+  @@map("student_profiles")
+}
+
+// ── Organizer ────────────────────────────────────────────────────────────────
+
+model Organizer {
+  id                 String             @id @default(cuid())
+  userId             String             @unique
+  user               User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name               String
+  website            String             @default("")
+  description        String             @default("")
+  verificationStatus String             @default("PENDING") // PENDING, VERIFIED, SUSPENDED
+  credibilityScore   Float              @default(0)
+  createdAt          DateTime           @default(now())
+  updatedAt          DateTime           @updatedAt
+
+  events             Event[]
+
+  @@map("organizers")
+}
+
+// ── Events ───────────────────────────────────────────────────────────────────
+
+model Event {
+  id                   String        @id @default(cuid())
+  organizerId          String
+  organizer            Organizer     @relation(fields: [organizerId], references: [id], onDelete: Cascade)
+  title                String
+  slug                 String        @unique
+  type                 String        // HACKATHON, COMPETITION, WORKSHOP, etc.
+  description          String
+  shortSummary         String        @default("")
+  startAt              DateTime
+  endAt                DateTime?
+  registrationDeadline DateTime
+  location             String        @default("")
+  isRemote             Boolean       @default(false)
+  eligibility          String        @default("[]") // JSON array
+  skills               String        @default("[]") // JSON array
+  registrationUrl      String        @default("")
+  status               String        @default("PENDING") // DRAFT, PENDING, APPROVED, REJECTED, NEEDS_CHANGES, DUPLICATE
+  qualityScore         Float         @default(0)
+  bannerColor          String        @default("#7C5CFF")
+  createdAt            DateTime      @default(now())
+  updatedAt            DateTime      @updatedAt
+
+  savedBy              SavedEvent[]
+  activity             EventActivity[]
+  verification         EventVerification?
+  recommendations      Recommendation[]
+  reports              Report[]
+  moderationActions    ModerationAction[]
+
+  @@map("events")
+}
+
+// ── Event Verification ───────────────────────────────────────────────────────
+
+model EventVerification {
+  id             String   @id @default(cuid())
+  eventId        String   @unique
+  event          Event    @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  qualityScore   Float    @default(0)
+  checks         String   @default("{}") // JSON object
+  riskFlags      String   @default("[]") // JSON array
+  recommendations String  @default("[]") // JSON array
+  verifiedAt     DateTime @default(now())
+
+  @@map("event_verifications")
+}
+
+// ── Saved Events ─────────────────────────────────────────────────────────────
+
+model SavedEvent {
+  userId    String
+  eventId   String
+  user      User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  event     Event  @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+
+  @@id([userId, eventId])
+  @@map("saved_events")
+}
+
+// ── Event Activity ────────────────────────────────────────────────────────────
+
+model EventActivity {
+  id           String       @id @default(cuid())
+  userId       String
+  eventId      String
+  user         User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  event        Event        @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  activityType String       // VIEWED, SAVED, UNSAVED, APPLIED, DISMISSED, REPORTED
+  timestamp    DateTime     @default(now())
+
+  @@map("event_activity")
+}
+
+// ── Recommendations ───────────────────────────────────────────────────────────
+
+model Recommendation {
+  id          String         @id @default(cuid())
+  userId      String
+  eventId     String
+  profileId   String
+  user        User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  event       Event          @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  profile     StudentProfile @relation(fields: [profileId], references: [id], onDelete: Cascade)
+  score       Float
+  reasons     String         @default("[]") // JSON array
+  generatedAt DateTime       @default(now())
+
+  @@unique([userId, eventId])
+  @@map("recommendations")
+}
+
+// ── Chat ──────────────────────────────────────────────────────────────────────
+
+model Conversation {
+  id        String    @id @default(cuid())
+  userId    String
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  title     String    @default("New conversation")
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  messages  Message[]
+
+  @@map("conversations")
+}
+
+model Message {
+  id             String       @id @default(cuid())
+  conversationId String
+  conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  role           String       // USER, ASSISTANT, TOOL
+  content        String
+  toolCalls      String?      // JSON
+  createdAt      DateTime     @default(now())
+
+  @@map("messages")
+}
+
+// ── Notifications ─────────────────────────────────────────────────────────────
+
+model Notification {
+  id        String           @id @default(cuid())
+  userId    String
+  user      User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  type      String           // NotificationType string
+  title     String
+  body      String
+  link      String?
+  readAt    DateTime?
+  priority  String           @default("NORMAL") // URGENT, IMPORTANT, NORMAL
+  createdAt DateTime         @default(now())
+
+  @@map("notifications")
+}
+
+// ── Gamification ──────────────────────────────────────────────────────────────
+
+model GamificationProfile {
+  id            String   @id @default(cuid())
+  userId        String   @unique
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  xp            Int      @default(0)
+  level         Int      @default(1)
+  currentStreak Int      @default(0)
+  longestStreak Int      @default(0)
+  lastActiveAt  DateTime @default(now())
+  weeklyXp      Int      @default(0)
+  monthlyXp     Int      @default(0)
+
+  @@map("gamification_profiles")
+}
+
+model Badge {
+  id          String      @id @default(cuid())
+  name        String      @unique
+  description String
+  icon        String      @default("award")
+  color       String      @default("#7C5CFF")
+  criteria    String      // JSON describing criteria
+  createdAt   DateTime    @default(now())
+
+  userBadges  UserBadge[]
+
+  @@map("badges")
+}
+
+model UserBadge {
+  userId   String
+  badgeId  String
+  user     User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  badge    Badge  @relation(fields: [badgeId], references: [id], onDelete: Cascade)
+  earnedAt DateTime @default(now())
+
+  @@id([userId, badgeId])
+  @@map("user_badges")
+}
+
+model Challenge {
+  id          String    @id @default(cuid())
+  title       String
+  description String
+  type        String    @default("DAILY") // DAILY | WEEKLY
+  target      Int
+  xpReward    Int
+  icon        String    @default("target")
+  startAt     DateTime
+  endAt       DateTime
+  createdAt   DateTime  @default(now())
+
+  progress    ChallengeProgress[]
+
+  @@map("challenges")
+}
+
+model ChallengeProgress {
+  userId      String
+  challengeId String
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  challenge   Challenge @relation(fields: [challengeId], references: [id], onDelete: Cascade)
+  progress    Int       @default(0)
+  completedAt DateTime?
+  createdAt   DateTime  @default(now())
+
+  @@id([userId, challengeId])
+  @@map("challenge_progress")
+}
+
+// ── Reports & Moderation ──────────────────────────────────────────────────────
+
+model Report {
+  id        String       @id @default(cuid())
+  userId    String
+  eventId   String
+  user      User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  event     Event        @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  reason    String
+  details   String       @default("")
+  status    String       @default("PENDING") // PENDING, REVIEWED, RESOLVED, DISMISSED
+  createdAt DateTime     @default(now())
+
+  @@map("reports")
+}
+
+model ModerationAction {
+  id        String         @id @default(cuid())
+  adminId   String
+  eventId   String
+  admin     User           @relation(fields: [adminId], references: [id], onDelete: Cascade)
+  event     Event          @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  action    String         // APPROVED, REJECTED, REQUESTED_CHANGES, MARKED_DUPLICATE, SUSPENDED_ORGANIZER
+  reason    String         @default("")
+  createdAt DateTime       @default(now())
+
+  @@map("moderation_actions")
+}

@@ -1,0 +1,154 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ── ACE AI Design System ─────────────────────────────────────────────────── */
+
+@layer base {
+  :root {
+    --primary-900: #3B236B;
+    --primary-700: #5B3CC4;
+    --primary-600: #6D4BEA;
+    --primary-500: #7C5CFF;
+    --primary-300: #B9A8FF;
+    --primary-100: #EEE9FF;
+    --background: #F7F7FC;
+    --surface: #FFFFFF;
+    --surface-muted: #F1F0F8;
+    --text-primary: #202033;
+    --text-secondary: #66667A;
+    --text-muted: #9292A5;
+    --success: #20A46B;
+    --warning: #E6A72E;
+    --danger: #D9536F;
+    --info: #4E8FF7;
+    --border: #E4E2F0;
+    --radius: 0.75rem;
+  }
+
+  * {
+    box-sizing: border-box;
+    border-color: var(--border);
+  }
+
+  html {
+    font-family: 'Inter', system-ui, sans-serif;
+    font-feature-settings: 'cv02', 'cv03', 'cv04', 'cv11';
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    scroll-behavior: smooth;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    html { scroll-behavior: auto; }
+    *, *::before, *::after { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
+  }
+
+  body {
+    background-color: var(--background);
+    color: var(--text-primary);
+    min-height: 100vh;
+  }
+}
+
+/* ── Utility Layer ────────────────────────────────────────────────────────── */
+
+@layer components {
+  /* Cards */
+  .card {
+    @apply bg-surface rounded-2xl shadow-card border border-border/60;
+  }
+  .card-hover {
+    @apply card transition-all duration-200 hover:shadow-card-hover hover:-translate-y-0.5;
+  }
+
+  /* Buttons (base — use Tailwind variants in components) */
+  .btn-primary {
+    @apply bg-primary-500 hover:bg-primary-600 text-white font-semibold rounded-xl px-5 py-2.5
+           transition-all duration-150 shadow-sm hover:shadow-md active:scale-[0.98] focus:outline-none
+           focus:ring-2 focus:ring-primary-500 focus:ring-offset-2;
+  }
+  .btn-secondary {
+    @apply bg-primary-100 hover:bg-primary-300/40 text-primary-700 font-semibold rounded-xl px-5 py-2.5
+           transition-all duration-150 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2;
+  }
+  .btn-ghost {
+    @apply bg-transparent hover:bg-surface-muted text-text-secondary font-medium rounded-xl px-5 py-2.5
+           transition-all duration-150 focus:outline-none focus:ring-2 focus:ring-primary-300 focus:ring-offset-1;
+  }
+  .btn-danger {
+    @apply bg-danger hover:bg-danger/90 text-white font-semibold rounded-xl px-5 py-2.5
+           transition-all duration-150 focus:outline-none focus:ring-2 focus:ring-danger focus:ring-offset-2;
+  }
+
+  /* Form controls */
+  .form-input {
+    @apply w-full rounded-xl border border-border bg-surface px-4 py-2.5 text-sm text-text-primary
+           placeholder:text-text-muted transition-all duration-150
+           focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500
+           disabled:opacity-50 disabled:cursor-not-allowed;
+  }
+  .form-label {
+    @apply text-sm font-medium text-text-secondary mb-1.5 block;
+  }
+
+  /* Badges / Chips */
+  .chip {
+    @apply inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium;
+  }
+  .chip-primary { @apply chip bg-primary-100 text-primary-700; }
+  .chip-success { @apply chip bg-success/10 text-success; }
+  .chip-warning { @apply chip bg-warning/10 text-warning; }
+  .chip-danger  { @apply chip bg-danger/10 text-danger; }
+  .chip-info    { @apply chip bg-info/10 text-info; }
+  .chip-muted   { @apply chip bg-surface-muted text-text-muted; }
+
+  /* Score bar */
+  .score-bar {
+    @apply h-2 rounded-full bg-surface-muted overflow-hidden;
+  }
+  .score-bar-fill {
+    @apply h-full rounded-full transition-all duration-700 ease-out;
+  }
+
+  /* Sidebar */
+  .sidebar-link {
+    @apply flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-text-secondary
+           hover:bg-primary-100/60 hover:text-primary-700 transition-all duration-150;
+  }
+  .sidebar-link-active {
+    @apply sidebar-link bg-primary-100 text-primary-700;
+  }
+
+  /* Skeleton */
+  .skeleton {
+    @apply animate-pulse rounded-xl bg-surface-muted;
+  }
+
+  /* Gradient text */
+  .gradient-text {
+    @apply bg-gradient-to-r from-primary-700 via-primary-500 to-primary-300 bg-clip-text text-transparent;
+  }
+
+  /* Glow effect */
+  .glow-primary {
+    box-shadow: 0 0 32px rgba(124, 92, 255, 0.25);
+  }
+}
+
+/* ── Scrollbar ───────────────────────────────────────────────────────────── */
+
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: var(--surface-muted); border-radius: 3px; }
+::-webkit-scrollbar-thumb { background: var(--primary-300); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: var(--primary-500); }
+
+/* ── Loading indicator ───────────────────────────────────────────────────── */
+
+.shimmer-bg {
+  background: linear-gradient(90deg, var(--surface-muted) 25%, rgba(255,255,255,0.6) 50%, var(--surface-muted) 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s linear infinite;
+}
