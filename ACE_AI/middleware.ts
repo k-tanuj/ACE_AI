@@ -1,6 +1,8 @@
-// middleware.ts
 import { NextResponse } from "next/server";
-import { auth } from "@/lib/auth";
+import NextAuth from "next-auth";
+import { authConfig } from "@/lib/auth.config";
+
+const { auth } = NextAuth(authConfig);
 
 // Define public routes that don't require authentication
 const publicRoutes = ["/", "/login", "/signup", "/api/auth/register", "/api/auth/error", "/api/auth/callback/credentials"];

@@ -53,7 +53,7 @@ export default async function AdminEventDetailPage({ params }: { params: { id: s
           <h1 className="text-3xl font-bold text-text-primary mb-2">{event.title}</h1>
           <div className="flex flex-wrap items-center gap-2">
             <Badge variant="outline">{event.type}</Badge>
-            <Badge className={statusColor}>{event.verificationStatus || event.status}</Badge>
+            <Badge className={statusColor}>{event.status}</Badge>
             {event.qualityScore && (
               <Badge variant="secondary">EQS: {event.qualityScore.toFixed(1)}</Badge>
             )}
@@ -128,12 +128,6 @@ export default async function AdminEventDetailPage({ params }: { params: { id: s
                   </div>
                 )}
 
-                {event.decisionReason && (
-                  <div>
-                    <h4 className="text-sm font-semibold text-text-primary mb-1">AI Decision Reason</h4>
-                    <p className="text-sm text-text-secondary">{event.decisionReason}</p>
-                  </div>
-                )}
               </CardContent>
             </Card>
           )}
