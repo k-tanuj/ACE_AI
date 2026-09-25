@@ -176,19 +176,19 @@ export default async function AdminEventDetailPage({ params }: { params: { id: s
             <CardContent>
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <div className="text-2xl font-bold text-text-primary">{event.viewCount}</div>
+                  <div className="text-2xl font-bold text-text-primary">0</div>
                   <div className="text-xs text-text-muted">Views</div>
                 </div>
                 <div>
-                  <div className="text-2xl font-bold text-text-primary">{event.saveCount}</div>
+                  <div className="text-2xl font-bold text-text-primary">0</div>
                   <div className="text-xs text-text-muted">Saves</div>
                 </div>
                 <div>
-                  <div className="text-2xl font-bold text-text-primary">{event.clickCount}</div>
+                  <div className="text-2xl font-bold text-text-primary">0</div>
                   <div className="text-xs text-text-muted">Clicks</div>
                 </div>
                 <div>
-                  <div className="text-2xl font-bold text-text-primary">{event.applicationCount}</div>
+                  <div className="text-2xl font-bold text-text-primary">0</div>
                   <div className="text-xs text-text-muted">Applications</div>
                 </div>
               </div>
