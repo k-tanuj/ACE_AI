@@ -1,16 +1,15 @@
 // app/(public)/search/page.tsx — Smart Search page
 "use client";
-import { useState, useEffect } from "react";
+import { Suspense, useState, useEffect } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
-import { Search, Loader2, Sparkles, Lock, ArrowRight, CheckCircle2 } from "lucide-react";
+import { Search, Loader2, Sparkles, Lock, ArrowRight, CheckCircle2, Zap } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { EventCard, EventCardSkeleton } from "@/components/events/EventCard";
 import { Badge } from "@/components/ui/badge";
 import Link from "next/link";
-import { Zap } from "lucide-react";
 
-export default function SearchPage() {
+function SearchContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const { data: session, status } = useSession();
@@ -248,5 +247,13 @@ export default function SearchPage() {
         )}
       </div>
     </div>
+  );
+}
+
+export default function SearchPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen bg-background p-12 text-center">Loading Search...</div>}>
+      <SearchContent />
+    </Suspense>
   );
 }

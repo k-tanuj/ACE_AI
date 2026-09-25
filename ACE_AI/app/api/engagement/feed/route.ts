@@ -1,5 +1,6 @@
 // app/api/engagement/feed/route.ts — Personalized Engagement Feed conforming to SRD §3.4 & §7
 import { NextRequest, NextResponse } from "next/server";
+export const dynamic = 'force-dynamic';
 import { prisma } from "@/lib/prisma";
 import { auth } from "@/lib/auth";
 import { computeRecommendation, applyDiversityFilter, getColdStartDefaults } from "@/lib/ai/recommendation";
