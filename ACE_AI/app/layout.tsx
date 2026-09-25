@@ -17,11 +17,16 @@ export const metadata: Metadata = {
   description: "AI-powered student opportunity discovery, personalization, and engagement platform. Find hackathons, internships, workshops, and more — tailored for you.",
   keywords: ["student opportunities", "hackathons", "internships", "AI recommendations", "AllCollegeEvent"],
   authors: [{ name: "ALGORHYTHM Team" }],
+  icons: {
+    icon: "/favicon.png",
+    apple: "/favicon.png",
+  },
   openGraph: {
     type: "website",
     title: "ACE AI — Student Opportunity Ecosystem",
     description: "Discover better opportunities. Powered by AI.",
     siteName: "ACE AI",
+    images: [{ url: "/ace-ai-logo.png", width: 800, height: 300, alt: "ACE AI Logo" }],
   },
 };
 

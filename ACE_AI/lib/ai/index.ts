@@ -7,7 +7,7 @@ import { z } from "zod";
 
 export const AI_AVAILABLE = Boolean(process.env.GOOGLE_GENERATIVE_AI_API_KEY);
 
-const MODEL_NAME = process.env.AI_MODEL || "gemini-1.5-flash";
+const MODEL_NAME = process.env.AI_MODEL || "gemini-2.5-flash";
 
 /** Generate structured JSON output with type safety */
 export async function aiGenerateObject<T>(opts: {

@@ -4,7 +4,8 @@ import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { signIn } from "next-auth/react";
-import { Zap, ArrowRight, GraduationCap, Briefcase } from "lucide-react";
+import Image from "next/image";
+import { ArrowRight, GraduationCap, Briefcase } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 
@@ -49,8 +50,8 @@ export default function SignupPage() {
       <div className="hidden lg:flex w-[480px] bg-gradient-hero flex-col justify-center items-center text-white px-12 relative overflow-hidden">
         <div className="absolute inset-0 opacity-20" style={{ backgroundImage: "radial-gradient(circle at 70% 70%, rgba(255,255,255,0.3), transparent 50%)" }} />
         <div className="relative text-center">
-          <div className="w-16 h-16 rounded-2xl bg-white/10 backdrop-blur-sm flex items-center justify-center mx-auto mb-6 border border-white/20">
-            <Zap className="w-8 h-8 text-white" />
+          <div className="w-20 h-20 rounded-2xl bg-white/10 backdrop-blur-sm flex items-center justify-center mx-auto mb-6 border border-white/20 p-2">
+            <Image src="/ace-ai-logo.png" alt="ACE AI" width={64} height={64} className="w-full h-full object-contain brightness-0 invert" />
           </div>
           <h2 className="text-3xl font-bold mb-4">Start your opportunity journey</h2>
           <p className="text-primary-200 leading-relaxed text-sm">Join thousands of students discovering AI-matched hackathons, internships, and workshops on ACE AI.</p>
@@ -60,11 +61,15 @@ export default function SignupPage() {
       {/* Right — form */}
       <div className="flex-1 flex flex-col justify-center px-8 lg:px-16 py-12 bg-background">
         <div className="max-w-sm mx-auto w-full">
-          <Link href="/" className="flex items-center gap-2.5 mb-10">
-            <div className="w-8 h-8 rounded-xl bg-gradient-primary flex items-center justify-center">
-              <Zap className="w-4 h-4 text-white" />
-            </div>
-            <span className="font-bold text-lg text-text-primary">ACE AI</span>
+          <Link href="/" className="flex items-center mb-10">
+            <Image
+              src="/ace-ai-logo.png"
+              alt="ACE AI"
+              width={110}
+              height={40}
+              className="h-9 w-auto object-contain"
+              priority
+            />
           </Link>
 
           <h1 className="text-2xl font-bold text-text-primary mb-1.5">Create your account</h1>

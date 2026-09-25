@@ -2,7 +2,7 @@
 "use client";
 import { useState } from "react";
 import Link from "next/link";
-import { MapPin, Calendar, Bookmark, BookmarkCheck, ExternalLink, Star, Zap } from "lucide-react";
+import { MapPin, Calendar, Bookmark, BookmarkCheck, ExternalLink, Star, Zap, ThumbsUp, ThumbsDown } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { toast } from "@/components/ui/use-toast";
@@ -37,6 +37,29 @@ interface EventCardProps {
 export function EventCard({ event, onSaveToggle, showMatchScore = false, compact = false }: EventCardProps) {
   const [saved, setSaved] = useState(event.isSaved ?? false);
   const [saving, setSaving] = useState(false);
+  const [feedbackGiven, setFeedbackGiven] = useState<"UP" | "DOWN" | null>(null);
+
+  async function handleFeedback(e: React.MouseEvent, type: "UP" | "DOWN") {
+    e.preventDefault();
+    e.stopPropagation();
+    if (feedbackGiven) return;
+    setFeedbackGiven(type);
+    try {
+      await fetch("/api/recommendations", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ eventId: event.id, feedback: type }),
+      });
+      toast({
+        title: type === "UP" ? "Thanks for your feedback!" : "Preference recorded",
+        description: type === "UP" ? "We will recommend more opportunities like this." : "We will show fewer events like this.",
+        variant: "default",
+      });
+    } catch {
+      // quiet
+    }
+  }
+
   const deadline = deadlineLabel(event.registrationDeadline);
   const isUrgent = (() => {
     const d = new Date(event.registrationDeadline);
@@ -132,7 +155,7 @@ export function EventCard({ event, onSaveToggle, showMatchScore = false, compact
         </span>
       </div>
 
-      {/* AI Match Score */}
+      {/* AI Match Score & Feedback Loop (SRD §8.3) */}
       {showMatchScore && event.matchScore !== undefined && (
         <div className="mb-3 p-2.5 rounded-xl bg-primary-100/50 border border-primary-100">
           <div className="flex items-center justify-between mb-1.5">
@@ -140,7 +163,33 @@ export function EventCard({ event, onSaveToggle, showMatchScore = false, compact
               <Star className="w-3 h-3" />
               AI Match Score
             </span>
-            <span className="text-sm font-bold text-primary-700">{event.matchScore}%</span>
+            <div className="flex items-center gap-2">
+              <span className="text-sm font-bold text-primary-700">{event.matchScore}%</span>
+              <div className="flex items-center gap-1 border-l border-primary-200/80 pl-2">
+                <button
+                  type="button"
+                  title="Helpful match"
+                  onClick={(e) => handleFeedback(e, "UP")}
+                  className={cn(
+                    "p-1 rounded hover:bg-primary-200/70 transition-colors",
+                    feedbackGiven === "UP" ? "text-success font-bold" : "text-primary-600 hover:text-success"
+                  )}
+                >
+                  <ThumbsUp className="w-3.5 h-3.5" />
+                </button>
+                <button
+                  type="button"
+                  title="Not relevant"
+                  onClick={(e) => handleFeedback(e, "DOWN")}
+                  className={cn(
+                    "p-1 rounded hover:bg-primary-200/70 transition-colors",
+                    feedbackGiven === "DOWN" ? "text-danger font-bold" : "text-primary-600 hover:text-danger"
+                  )}
+                >
+                  <ThumbsDown className="w-3.5 h-3.5" />
+                </button>
+              </div>
+            </div>
           </div>
           {event.matchReasons?.slice(0, 2).map((reason, i) => (
             <p key={i} className="text-[11px] text-primary-600 leading-relaxed">• {reason}</p>

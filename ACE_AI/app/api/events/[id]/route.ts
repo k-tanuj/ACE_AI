@@ -23,9 +23,14 @@ export async function GET(_req: NextRequest, { params }: { params: { id: string 
 export async function PATCH(req: NextRequest, { params }: { params: { id: string } }) {
   try {
     const body = await req.json();
+    
+    // When an event is edited, always reset it to PENDING so AI rescan is required
+    body.status = "PENDING";
+    
     const event = await prisma.event.update({ where: { id: params.id }, data: body });
     return NextResponse.json(event);
-  } catch {
+  } catch(e: any) {
+    console.error(e);
     return NextResponse.json({ error: "Update failed" }, { status: 500 });
   }
 }

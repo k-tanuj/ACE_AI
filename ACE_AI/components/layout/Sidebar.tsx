@@ -3,10 +3,11 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useSession } from "next-auth/react";
+import Image from "next/image";
 import {
   LayoutDashboard, Compass, Bookmark, Calendar, Bell, MessageCircle,
   User, TrendingUp, Trophy, Target, Briefcase, Plus, Wand2, BarChart3,
-  ShieldCheck, Users, Settings, FileText, Zap,
+  ShieldCheck, Users, Settings, FileText,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -51,14 +52,18 @@ export function Sidebar() {
   return (
     <aside className="w-60 h-screen flex flex-col bg-surface border-r border-border sticky top-0 z-20">
       {/* Logo */}
-      <div className="flex items-center gap-2.5 px-5 py-5 border-b border-border">
-        <div className="w-8 h-8 rounded-xl bg-gradient-primary flex items-center justify-center shadow-sm">
-          <Zap className="w-4 h-4 text-white" />
-        </div>
-        <div>
-          <span className="font-bold text-base text-text-primary">ACE AI</span>
-          <p className="text-[10px] text-text-muted leading-none mt-0.5">{portalLabel}</p>
-        </div>
+      <div className="flex items-center gap-2.5 px-5 py-4 border-b border-border">
+        <Link href="/" className="flex items-center">
+          <Image
+            src="/ace-ai-logo.png"
+            alt="ACE AI"
+            width={96}
+            height={36}
+            className="h-9 w-auto object-contain"
+            priority
+          />
+        </Link>
+        <p className="text-[10px] text-text-muted leading-none ml-1">{portalLabel}</p>
       </div>
 
       {/* Navigation */}

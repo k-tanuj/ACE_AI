@@ -14,7 +14,7 @@ export default auth((req) => {
     return NextResponse.next();
   }
 
-  const isPublicRoute = publicRoutes.includes(nextUrl.pathname);
+  const isPublicRoute = publicRoutes.includes(nextUrl.pathname) || nextUrl.pathname.startsWith("/events");
 
   // If user is trying to access a protected route while not logged in, redirect to login
   if (!isLoggedIn && !isPublicRoute && !nextUrl.pathname.startsWith("/api/")) {

@@ -1,19 +1,29 @@
 // app/(public)/page.tsx — ACE AI Landing Page
 import Link from "next/link";
+import Image from "next/image";
 import { ArrowRight, Search, Zap, ShieldCheck, MessageCircle, Trophy, Star, CheckCircle, Users, TrendingUp } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { HeroSearch } from "@/components/home/HeroSearch";
+import { prisma } from "@/lib/prisma";
 
-export default function LandingPage() {
+export const dynamic = "force-dynamic";
+
+export default async function LandingPage() {
+  const approvedEventCount = await prisma.event.count({ where: { status: "APPROVED" } }).catch(() => 0);
   return (
     <div className="min-h-screen bg-background overflow-x-hidden">
       {/* ── Top Nav ──────────────────────────────────────────────────────── */}
       <nav className="sticky top-0 z-50 bg-surface/90 backdrop-blur-xl border-b border-border">
         <div className="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
-          <Link href="/" className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-xl bg-gradient-primary flex items-center justify-center shadow-sm">
-              <Zap className="w-4 h-4 text-white" />
-            </div>
-            <span className="font-bold text-lg text-text-primary">ACE AI</span>
+          <Link href="/" className="flex items-center">
+            <Image
+              src="/ace-ai-logo.png"
+              alt="ACE AI"
+              width={110}
+              height={40}
+              className="h-9 w-auto object-contain"
+              priority
+            />
           </Link>
           <div className="hidden md:flex items-center gap-1">
             <Link href="/events" className="px-4 py-2 text-sm font-medium text-text-secondary hover:text-text-primary hover:bg-surface-muted rounded-xl transition-all">Opportunities</Link>
@@ -56,18 +66,7 @@ export default function LandingPage() {
             </p>
 
             {/* Smart Search Input */}
-            <div className="flex gap-3 mb-8 max-w-2xl">
-              <div className="relative flex-1">
-                <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4.5 h-4.5 text-text-muted" />
-                <input
-                  className="w-full pl-12 pr-4 h-12 rounded-2xl border border-border bg-surface text-sm text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 shadow-card transition-all"
-                  placeholder='Try: "AI hackathons for CSE students in Chennai this month"'
-                />
-              </div>
-              <Button size="lg" className="rounded-2xl px-6 shrink-0" asChild>
-                <Link href="/search">Search <ArrowRight className="w-4 h-4" /></Link>
-              </Button>
-            </div>
+            <HeroSearch />
 
             {/* CTAs */}
             <div className="flex flex-wrap gap-3">
@@ -81,9 +80,9 @@ export default function LandingPage() {
 
             {/* Social proof */}
             <div className="flex items-center gap-6 mt-10 text-sm text-text-muted">
-              <span className="flex items-center gap-1.5"><Users className="w-4 h-4 text-primary-500" /><strong className="text-text-primary">10,000+</strong> students</span>
-              <span className="flex items-center gap-1.5"><Star className="w-4 h-4 text-warning" /><strong className="text-text-primary">500+</strong> verified events</span>
-              <span className="flex items-center gap-1.5"><TrendingUp className="w-4 h-4 text-success" /><strong className="text-text-primary">94%</strong> match accuracy</span>
+              <span className="flex items-center gap-1.5"><Users className="w-4 h-4 text-primary-500" /><strong className="text-text-primary">Growing</strong> student community</span>
+              <span className="flex items-center gap-1.5"><Star className="w-4 h-4 text-warning" /><strong className="text-text-primary">{approvedEventCount}+</strong> verified events</span>
+              <span className="flex items-center gap-1.5"><TrendingUp className="w-4 h-4 text-success" /><strong className="text-text-primary">AI-powered</strong> matching</span>
             </div>
           </div>
 
@@ -94,7 +93,7 @@ export default function LandingPage() {
                 <div className="w-6 h-6 rounded-lg bg-primary-100 flex items-center justify-center">
                   <Star className="w-3.5 h-3.5 text-primary-600" />
                 </div>
-                <span className="text-sm font-semibold text-text-primary">Recommended for Arjun</span>
+                <span className="text-sm font-semibold text-text-primary">AI Recommendations for You</span>
               </div>
               {[
                 { title: "HackAI Chennai 2026", type: "Hackathon", score: 95, color: "#7C5CFF" },

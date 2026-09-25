@@ -1,27 +1,35 @@
-// app/api/chat/route.ts — ACE Chat streaming endpoint
+// app/api/chat/route.ts — ACE Chat streaming endpoint conforming to SRD §3.3 (FR-3.1 to FR-3.8)
 import { NextRequest } from "next/server";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import { AI_AVAILABLE } from "@/lib/ai";
-import { google, streamText } from "@/lib/ai";
+import { AI_AVAILABLE, google, streamText } from "@/lib/ai";
+import { StreamData } from "ai";
 
-const SYSTEM_PROMPT = `You are ACE, an AI assistant for ACE AI — a student opportunity discovery platform.
+const SYSTEM_PROMPT = `You are ACE, the AI assistant for AllCollegeEvent (ACE AI) — India's premier student opportunity platform.
 
-Your purpose:
-- Help students find hackathons, internships, workshops, competitions, conferences, scholarships, and certifications
-- Explain event eligibility, quality scores, and organizer credibility
-- Guide students through the platform
-- Make personalized recommendations based on their profile
-- Summarize event details clearly
+Your capabilities:
+1. Event Search & Discovery: Recommend hackathons, internships, workshops, competitions, scholarships, certifications, and conferences.
+2. Platform Guidance: Explain quality scores (0-100), organizer credibility, badges, streaks, and onboarding.
+3. Eligibility & Registration: Break down prerequisites, required skills, and deadlines.
+4. Human Escalation: If a user has account billing issues, account suspension, or official complaints, direct them to human support at support@allcollegeevent.com.
 
-Rules:
-- Never invent events or data — only reference what you know from the platform
-- Be concise and helpful
-- Do not use emojis
-- Be professional but friendly
-- Always suggest next actions
+STRICT GROUNDING RULES (SRD FR-3.7):
+- Ground all event details strictly in the platform data provided in the prompt. Never invent non-existent dates, prizes, or event titles.
+- If information is not in the database, clearly state it and offer to search or connect with human support.
+- Be concise, supportive, and professional. Avoid emojis.
 
-When asked about events, mention that the student can search, browse, or ask you for specific opportunities.`;
+FORMATTING RULES:
+- Use clean markdown only: **bold**, bullet lists with -, numbered lists.
+- Do NOT use ++ or any non-standard characters for formatting.
+- For event details use a simple bullet list: - **Field:** Value`;
+
+const PLATFORM_FAQS = `
+Platform FAQs:
+- How recommendations work: We combine semantic interest match (50%), location (20%), department (15%), deadline urgency (10%), and organizer credibility (5%).
+- Event Quality Scores: Calculated automatically (0-100) based on completeness, organizer verification, description quality, and registration link security.
+- Gamification & XP: Earn XP and badges by exploring opportunities, saving events, maintaining login streaks, and completing daily challenges.
+- How to apply: Click any opportunity card to view details and follow the verified registration link.
+`;
 
 export async function POST(req: NextRequest) {
   const session = await auth();
@@ -32,80 +40,166 @@ export async function POST(req: NextRequest) {
   try {
     const { messages, conversationId } = await req.json();
     const userId = session.user.id;
+    const lastMsg = (messages?.[messages.length - 1]?.content ?? "").trim();
+    const lastMsgLower = lastMsg.toLowerCase();
 
-    // Fetch some context
-    const [profile, savedCount, recommendations] = await Promise.all([
+    // 1. RAG: Fetch user profile, top recommendations, and relevant events matching query
+    const keywords = lastMsgLower
+      .replace(/[^a-z0-9 ]/g, " ")
+      .split(/\s+/)
+      .filter((w: string) => w.length > 3);
+
+    const [profile, savedCount, recommendations, matchedEvents] = await Promise.all([
       prisma.studentProfile.findUnique({ where: { userId } }),
       prisma.savedEvent.count({ where: { userId } }),
       prisma.recommendation.findMany({
         where: { userId },
-        include: { event: { select: { title: true, type: true, location: true, registrationDeadline: true } } },
+        include: {
+          event: {
+            select: { title: true, type: true, location: true, registrationDeadline: true, qualityScore: true },
+          },
+        },
         orderBy: { score: "desc" },
-        take: 5,
+        take: 3,
+      }),
+      prisma.event.findMany({
+        where: {
+          status: "APPROVED",
+          registrationDeadline: { gte: new Date() },
+          OR: keywords.length
+            ? [
+                ...keywords.slice(0, 3).map((kw: string) => ({ title: { contains: kw } })),
+                ...keywords.slice(0, 3).map((kw: string) => ({ skills: { contains: kw } })),
+              ]
+            : undefined,
+        },
+        include: { organizer: { select: { name: true, credibilityScore: true } } },
+        take: 4,
       }),
     ]);
 
-    const contextPreamble = profile
-      ? `\n\nStudent context:
+    const studentContext = profile
+      ? `\n\nStudent Profile:
 - Name: ${session.user.name}
 - Department: ${profile.department || "Not specified"}
 - Skills: ${profile.skills}
 - Interests: ${profile.interests}
-- Career goals: ${profile.careerGoals}
-- Location: ${profile.city}, ${profile.state}
-- Saved events: ${savedCount}
-- Top recommendations: ${recommendations.map((r) => `"${r.event.title}" (${r.event.type}, ${Math.round(r.score * 100)}% match)`).join(", ") || "None yet"}`
-      : "";
+- City: ${profile.city}, ${profile.state}
+- Saved Events Count: ${savedCount}
+- Top Recommended: ${recommendations.map((r) => `"${r.event.title}" (${r.event.type})`).join(", ") || "None"}`
+      : `\n\nStudent: ${session.user.name}`;
+
+    const retrievedEventsContext = `\n\nRetrieved Platform Events (Grounded Context):
+${matchedEvents
+  .map(
+    (e) =>
+      `- Title: ${e.title} | Type: ${e.type} | Location: ${e.location || (e.isRemote ? "Remote" : "N/A")} | Deadline: ${new Date(
+        e.registrationDeadline
+      ).toLocaleDateString()} | Quality: ${e.qualityScore}% | Organizer: ${e.organizer.name} (${e.organizer.credibilityScore}%)`
+  )
+  .join("\n") || "No directly matching events found in database."}`;
+
+    // Escalation check (SRD FR-3.5)
+    const isEscalationRequested =
+      lastMsgLower.includes("human") ||
+      lastMsgLower.includes("dispute") ||
+      lastMsgLower.includes("complaint") ||
+      lastMsgLower.includes("refund") ||
+      lastMsgLower.includes("scam");
 
     if (!AI_AVAILABLE) {
-      // Mock streaming response
-      const mockResponses: Record<string, string> = {
-        default: `Hello ${session.user.name}! I'm ACE, your AI assistant on ACE AI. I can help you discover opportunities, understand event details, explain trust scores, and guide your application journey. What are you looking for today?`,
-        hackathon: `Based on your AI/ML interest and Python skills, here are the top hackathons I recommend:\n\n1. **HackAI Chennai 2026** — 95% match. This is a premier AI hackathon in Chennai with a ₹5L prize pool. Registration closes in 7 days.\n\n2. **TechFest AI Challenge 2026** — 88% match. IIT Bombay's flagship AI competition. International participation welcome.\n\nWould you like more details on either of these, or should I search for more options?`,
-        suitable: `Based on your profile — CSE student at Anna University, Chennai, with Python and Machine Learning skills — **HackAI Chennai 2026** is an excellent match because:\n\n- It's a Hackathon (matches your preferred type)\n- Located in Chennai (your city)\n- Requires Python and ML skills (which you have)\n- Eligible for CSE students\n- High quality score: 92%\n- The organizer (Devfolio) has a credibility score of 88%\n\nI'd recommend registering soon — the deadline is in 7 days.`,
-      };
+      let responseText = "";
 
-      const lastMsg = messages[messages.length - 1]?.content?.toLowerCase() ?? "";
-      let response = mockResponses.default;
-      if (lastMsg.includes("hackathon") || lastMsg.includes("find") || lastMsg.includes("search")) response = mockResponses.hackathon;
-      if (lastMsg.includes("suitable") || lastMsg.includes("why") || lastMsg.includes("recommend")) response = mockResponses.suitable;
-
-      // Save to DB
-      if (conversationId) {
-        await prisma.message.create({ data: { conversationId, role: "ASSISTANT", content: response } });
+      if (isEscalationRequested) {
+        responseText = `I understand you need specialized human assistance. You can reach our dedicated Platform Support Team directly at support@allcollegeevent.com or open a ticket through the Help Center. Our moderators typically respond within 24 hours.`;
+      } else if (
+        lastMsgLower.includes("hackathon") ||
+        lastMsgLower.includes("find") ||
+        lastMsgLower.includes("search") ||
+        lastMsgLower.includes("opportunity")
+      ) {
+        if (matchedEvents.length > 0) {
+          const list = matchedEvents
+            .map(
+              (e, i) =>
+                `${i + 1}. **${e.title}** (${e.type}) — Location: ${e.isRemote ? "Remote" : e.location}, Quality: ${e.qualityScore}%, Deadline: ${new Date(e.registrationDeadline).toLocaleDateString()}`
+            )
+            .join("\n\n");
+          responseText = `Here are verified opportunities currently open on ACE AI matching your query:\n\n${list}\n\nWould you like more details on how to prepare, or should I refine the search for a specific location?`;
+        } else {
+          responseText = `I searched our database for "${lastMsg}", but didn't find an exact open event right now. You can check the Discover page or try searching with general terms like "AI" or "Python".`;
+        }
+      } else if (lastMsgLower.includes("faq") || lastMsgLower.includes("score") || lastMsgLower.includes("xp")) {
+        responseText = `Here is how ACE AI works:\n\n- **Quality Scores:** Every event is scanned for verified organizers, valid registration URLs, and clear eligibility.\n- **XP & Streaks:** You earn XP and unlock badges by exploring events and staying active daily.\n- **Smart Matching:** Opportunities are ranked specifically based on your skills, department, and goals.`;
+      } else {
+        responseText = `Hello ${session.user.name}! I am ACE, your student opportunity advisor. I can help you find verified hackathons, internships, and workshops, check application deadlines, or explain how event quality scores work. What are you looking for today?`;
       }
 
-      // Return as SSE stream
+      // Persist assistant message in conversation
+      if (conversationId) {
+        await prisma.message.create({
+          data: { conversationId, role: "ASSISTANT", content: responseText },
+        });
+      }
+
+      // Stream words
       const encoder = new TextEncoder();
       const stream = new ReadableStream({
         async start(controller) {
-          const words = response.split(" ");
+          const words = responseText.split(" ");
           for (const word of words) {
             controller.enqueue(encoder.encode(`data: ${JSON.stringify({ text: word + " " })}\n\n`));
-            await new Promise((r) => setTimeout(r, 30));
+            await new Promise((r) => setTimeout(r, 25));
           }
           controller.enqueue(encoder.encode("data: [DONE]\n\n"));
           controller.close();
         },
       });
-      return new Response(stream, { headers: { "Content-Type": "text/event-stream", "Cache-Control": "no-cache" } });
+
+      return new Response(stream, {
+        headers: { "Content-Type": "text/event-stream", "Cache-Control": "no-cache" },
+      });
     }
 
-    // Real AI response
+    // Real AI generation with Gemini + event cards via StreamData
+    const streamData = new StreamData();
+
+    // Immediately append matched events as structured data for the frontend to render as cards
+    if (matchedEvents.length > 0) {
+      streamData.append({
+        events: matchedEvents.map((e) => ({
+          id: e.id,
+          title: e.title,
+          type: e.type,
+          location: e.isRemote ? "Remote / Online" : (e.location || "N/A"),
+          deadline: new Date(e.registrationDeadline).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" }),
+          qualityScore: Math.round(e.qualityScore),
+          organizer: e.organizer.name,
+          credibilityScore: e.organizer.credibilityScore,
+          slug: (e as any).slug || e.id,
+        })),
+      });
+    }
+
     const result = await streamText({
-      model: google("gemini-1.5-flash"),
-      system: SYSTEM_PROMPT + contextPreamble,
+      model: google("gemini-2.5-flash"),
+      system: SYSTEM_PROMPT + PLATFORM_FAQS + studentContext + retrievedEventsContext,
       messages,
+      onFinish: async ({ text }) => {
+        streamData.close();
+        if (conversationId) {
+          await prisma.message.create({
+            data: { conversationId, role: "ASSISTANT", content: text },
+          }).catch(console.error);
+        }
+      },
     });
 
-    if (conversationId) {
-      const fullText = await result.text;
-      await prisma.message.create({ data: { conversationId, role: "ASSISTANT", content: fullText } });
-    }
-
-    return result.toAIStreamResponse();
+    return result.toDataStreamResponse({ data: streamData });
   } catch (err) {
-    console.error("[Chat]", err);
-    return new Response(JSON.stringify({ error: "Chat failed" }), { status: 500 });
+    console.error("[Chat Error]", err);
+    return new Response(JSON.stringify({ error: "Chat service encountered an error" }), {
+      status: 500,
+    });
   }
 }

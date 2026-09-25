@@ -1,12 +1,21 @@
-// app/api/search/route.ts — Smart Search with NL intent parsing
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { parseSearchIntent } from "@/lib/ai/search-intent";
+import { auth } from "@/lib/auth";
 import { addDays } from "date-fns";
 
 export async function POST(req: NextRequest) {
   try {
-    const { query, userId } = await req.json();
+    const session = await auth();
+    if (!session?.user) {
+      return NextResponse.json(
+        { error: "Unauthorized", message: "Smart search is available only after login." },
+        { status: 401 }
+      );
+    }
+
+    const { query } = await req.json();
+    const userId = session.user.id;
     if (!query?.trim()) return NextResponse.json({ events: [], intent: null });
 
     // Parse NL query to structured intent
@@ -65,7 +74,23 @@ export async function POST(req: NextRequest) {
 
     scored.sort((a, b) => b.matchScore - a.matchScore);
 
-    return NextResponse.json({ events: scored, intent });
+    // FR-2.7: Log search queries for continuous recommendation learning
+    if (userId && events.length > 0) {
+      prisma.eventActivity.create({
+        data: {
+          userId,
+          eventId: events[0].id,
+          activityType: "SEARCH_QUERY",
+        },
+      }).catch((e) => console.error("[Search Log Error]", e));
+    }
+
+    return NextResponse.json({
+      events: scored,
+      intent,
+      clarifyingQuestion: intent.clarifyingQuestion,
+      synonyms: intent.expandedSynonyms,
+    });
   } catch (err) {
     console.error(err);
     return NextResponse.json({ error: "Search failed" }, { status: 500 });

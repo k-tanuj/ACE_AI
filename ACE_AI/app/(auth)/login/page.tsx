@@ -4,7 +4,8 @@ import { useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { signIn } from "next-auth/react";
-import { Zap, Eye, EyeOff, ArrowRight, Lock, Mail, GraduationCap, Briefcase, ShieldCheck } from "lucide-react";
+import Image from "next/image";
+import { Eye, EyeOff, ArrowRight, Lock, Mail, GraduationCap, Briefcase, ShieldCheck } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
@@ -55,11 +56,15 @@ export default function LoginPage() {
     <div className="min-h-screen bg-background flex flex-col items-center py-12 px-6">
       {/* Header */}
       <div className="w-full max-w-4xl flex items-center justify-between mb-12">
-        <Link href="/" className="flex items-center gap-2.5">
-          <div className="w-10 h-10 rounded-xl bg-gradient-primary flex items-center justify-center">
-            <Zap className="w-5 h-5 text-white" />
-          </div>
-          <span className="font-bold text-2xl text-text-primary">ACE AI</span>
+        <Link href="/" className="flex items-center">
+          <Image
+            src="/ace-ai-logo.png"
+            alt="ACE AI"
+            width={110}
+            height={40}
+            className="h-10 w-auto object-contain"
+            priority
+          />
         </Link>
         <Link href="/signup" className="text-sm font-medium text-primary-600 hover:underline">
           Don&apos;t have an account? Sign up
@@ -70,6 +75,18 @@ export default function LoginPage() {
         <h1 className="text-3xl font-bold text-text-primary mb-3">Welcome to ACE AI</h1>
         <p className="text-text-secondary">Select your portal to continue</p>
       </div>
+
+      {from?.includes("search") && (
+        <div className="w-full max-w-3xl mb-8 p-4 bg-primary-50 border border-primary-200 text-primary-900 rounded-2xl flex items-center gap-3 shadow-sm">
+          <div className="w-9 h-9 rounded-xl bg-primary-500 text-white flex items-center justify-center shrink-0">
+            <Lock className="w-4 h-4" />
+          </div>
+          <div>
+            <p className="text-sm font-semibold">Sign in required to run Smart Search</p>
+            <p className="text-xs text-primary-700">Log in with your account to unlock AI-powered opportunity matching for your search query.</p>
+          </div>
+        </div>
+      )}
 
       {/* Portal Selection Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6 w-full max-w-3xl mb-8">

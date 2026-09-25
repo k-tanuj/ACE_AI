@@ -7,6 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import Link from "next/link";
 import { EVENT_TYPE_LABELS, formatDate } from "@/lib/utils";
+import { AdminScannerAction } from "@/components/admin/AdminScannerAction";
 
 export const dynamic = "force-dynamic";
 
@@ -53,6 +54,9 @@ export default async function AdminDashboard() {
           </Card>
         ))}
       </div>
+
+      {/* AI Quality Scanner & Engagement Dispatch (SRD §3.5 & §3.4) */}
+      <AdminScannerAction />
 
       {/* Pending Events */}
       <Card>

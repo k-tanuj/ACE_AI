@@ -37,6 +37,42 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         const valid = await bcrypt.compare(parsed.data.password, user.password);
         if (!valid) return null;
 
+        // Update streak & lastActiveAt on successful login
+        const now = new Date();
+        try {
+          const gam = await prisma.gamificationProfile.findUnique({ where: { userId: user.id } });
+          if (gam) {
+            const last = gam.lastActiveAt ? new Date(gam.lastActiveAt) : null;
+            const isSameDay = last &&
+              last.getFullYear() === now.getFullYear() &&
+              last.getMonth() === now.getMonth() &&
+              last.getDate() === now.getDate();
+
+            if (!isSameDay) {
+              const isConsecutive = last && (now.getTime() - last.getTime()) < 48 * 60 * 60 * 1000;
+              const newStreak = isConsecutive ? gam.currentStreak + 1 : 1;
+              await prisma.gamificationProfile.update({
+                where: { userId: user.id },
+                data: {
+                  lastActiveAt: now,
+                  currentStreak: newStreak,
+                  longestStreak: Math.max(newStreak, gam.longestStreak),
+                  xp: { increment: 15 },
+                  weeklyXp: { increment: 15 },
+                  monthlyXp: { increment: 15 },
+                },
+              });
+            }
+          } else if (user.role === "STUDENT") {
+            // Auto-create gamification profile for legacy users
+            await prisma.gamificationProfile.create({
+              data: { userId: user.id, lastActiveAt: now, currentStreak: 1, longestStreak: 1, xp: 15 },
+            });
+          }
+        } catch {
+          // Non-fatal — login still succeeds
+        }
+
         return {
           id: user.id,
           email: user.email,

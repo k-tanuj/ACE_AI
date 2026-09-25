@@ -5,3 +5,14 @@ node_modules/
 dist/
 build/
 .DS_Store
+*.db
+*.db-journal
+run.bat
+
+
+__pycache__/
+*.pyc
+.venv/
+venv/
+.coverage
+scratch_test.js

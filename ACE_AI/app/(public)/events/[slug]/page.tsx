@@ -18,7 +18,7 @@ export default async function EventDetailPage({ params }: { params: { slug: stri
   const session = await auth();
 
   const event = await prisma.event.findFirst({
-    where: { OR: [{ slug: params.slug }, { id: params.slug }], status: "APPROVED" },
+    where: { OR: [{ slug: params.slug }, { id: params.slug }] },
     include: {
       organizer: { include: { user: { select: { email: true } } } },
       verification: true,
@@ -82,6 +82,11 @@ export default async function EventDetailPage({ params }: { params: { slug: stri
             <div className="bg-surface rounded-3xl border border-border shadow-card p-6">
               <div className="flex flex-wrap items-center gap-2 mb-4">
                 <Badge variant="default">{EVENT_TYPE_LABELS[event.type] || event.type}</Badge>
+                {event.status !== "APPROVED" && (
+                  <Badge variant="warning" className="capitalize">
+                    Status: {event.status.toLowerCase().replace("_", " ")}
+                  </Badge>
+                )}
                 {event.isRemote && <Badge variant="info">Remote</Badge>}
                 {event.organizer?.verificationStatus === "VERIFIED" && <Badge variant="success">Verified Organizer</Badge>}
               </div>

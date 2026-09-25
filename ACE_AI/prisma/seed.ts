@@ -1,9 +1,54 @@
 // prisma/seed.ts — ACE AI Demo Data
 // Run: npm run db:seed
 
-import { PrismaClient, Role, EventType, EventStatus, OrganizerStatus, Priority, NotificationType } from "@prisma/client";
+import { PrismaClient } from "@prisma/client";
 import bcrypt from "bcryptjs";
 import { addDays, subDays, addHours } from "date-fns";
+
+const Role = {
+  STUDENT: "STUDENT",
+  ORGANIZER: "ORGANIZER",
+  ADMIN: "ADMIN",
+} as const;
+
+const EventType = {
+  HACKATHON: "HACKATHON",
+  COMPETITION: "COMPETITION",
+  WORKSHOP: "WORKSHOP",
+  INTERNSHIP: "INTERNSHIP",
+  CONFERENCE: "CONFERENCE",
+  SCHOLARSHIP: "SCHOLARSHIP",
+  CERTIFICATION: "CERTIFICATION",
+  RESEARCH: "RESEARCH",
+} as const;
+
+const EventStatus = {
+  DRAFT: "DRAFT",
+  PENDING: "PENDING",
+  APPROVED: "APPROVED",
+  REJECTED: "REJECTED",
+  NEEDS_CHANGES: "NEEDS_CHANGES",
+  DUPLICATE: "DUPLICATE",
+} as const;
+
+const OrganizerStatus = {
+  PENDING: "PENDING",
+  VERIFIED: "VERIFIED",
+  SUSPENDED: "SUSPENDED",
+} as const;
+
+const Priority = {
+  URGENT: "URGENT",
+  IMPORTANT: "IMPORTANT",
+  NORMAL: "NORMAL",
+} as const;
+
+const NotificationType = {
+  DEADLINE_APPROACHING: "DEADLINE_APPROACHING",
+  NEW_RECOMMENDATION: "NEW_RECOMMENDATION",
+  BADGE_EARNED: "BADGE_EARNED",
+  CHALLENGE_REMINDER: "CHALLENGE_REMINDER",
+} as const;
 
 const prisma = new PrismaClient();
 const now = new Date();
@@ -469,23 +514,26 @@ async function main() {
   }
 
   // ── Event Verifications ────────────────────────────────────────────────────
-  await prisma.eventVerification.createMany({
-    skipDuplicates: true,
-    data: events.slice(0, 12).map((e) => ({
-      eventId: e.id,
-      qualityScore: e.qualityScore,
-      checks: json({
-        completeness: e.qualityScore > 80 ? 95 : 60,
-        dateValidity: 100,
-        organizerVerification: 90,
-        registrationUrl: e.registrationUrl ? 100 : 0,
-        duplicateSafety: 100,
-        descriptionQuality: e.qualityScore > 80 ? 85 : 40,
-      }),
-      riskFlags: json(e.qualityScore < 50 ? ["Vague description", "Missing contact info"] : []),
-      recommendations: json(e.qualityScore < 80 ? ["Add more details to description", "Include contact information"] : []),
-    })),
-  });
+  for (const e of events.slice(0, 12)) {
+    await prisma.eventVerification.upsert({
+      where: { eventId: e.id },
+      update: {},
+      create: {
+        eventId: e.id,
+        qualityScore: e.qualityScore,
+        checks: json({
+          completeness: e.qualityScore > 80 ? 95 : 60,
+          dateValidity: 100,
+          organizerVerification: 90,
+          registrationUrl: e.registrationUrl ? 100 : 0,
+          duplicateSafety: 100,
+          descriptionQuality: e.qualityScore > 80 ? 85 : 40,
+        }),
+        riskFlags: json(e.qualityScore < 50 ? ["Vague description", "Missing contact info"] : []),
+        recommendations: json(e.qualityScore < 80 ? ["Add more details to description", "Include contact information"] : []),
+      },
+    });
+  }
 
   // ── Demo Student Accounts ──────────────────────────────────────────────────
   const studentPassword = await bcrypt.hash("demo1234", 10);
